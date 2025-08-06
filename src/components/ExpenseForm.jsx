@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Input from "./Input";
+import Select from "./Select";
 
 export default function ExpenseForm({ setExpenses }) {
   const [expense, setExpense] = useState({
@@ -9,21 +10,55 @@ export default function ExpenseForm({ setExpenses }) {
   });
 
   const [errors, setErrors] = useState({});
+  const validationRule = {
+      title:[
+        {
+          errorType: 'Required',
+          msg: 'Title is required'
+        },
+        {
+          errorType: 'Min Length',
+          msg: 'Minimum lenght is 6'
+        }
+      ],
+      category: [
+        {
+          errorType: 'Required',
+          msg: 'Category is required'
+        },
+      ],
+      amount: [
+        {
+          errorType: 'Required',
+          msg: 'Amount is required'
+        },
+        {
+          errorType: 'Only Number',
+          msg: 'Only Number is valid'
+        },
+      ]
+  }
 
   const validate = (formData) => {
     const errorsData = {};
 
-    if (!formData.title) {
-      errorsData.title = "Title is required";
-    }
-
-    if (!formData.category) {
-      errorsData.category = "Please Select a Category";
-    }
-
-    if (!formData.amount) {
-      errorsData.amount = "Amount is required";
-    }
+    Object.entries(formData).forEach(([data, dataValue])=>{
+      validationRule[data].some((error)=>{
+        if(error.errorType === 'Required' && !dataValue){
+          errorsData[data] = error.msg
+          return true
+        }
+        else if(error.errorType === 'Min Length' && dataValue && dataValue.length < 6){
+          errorsData[data] = error.msg
+          return true
+        }
+        else if(error.errorType === 'Only Number' && dataValue){
+          let regex = /^\d+$/;
+          if(!regex.test(dataValue)) errorsData[data] = error.msg
+          return true
+        }
+      })
+    })
 
     setErrors(errorsData);
     return errorsData;
@@ -66,25 +101,16 @@ export default function ExpenseForm({ setExpenses }) {
         onchange={handleChange}
         error={errors.title}
       />
-      <div className="input-container">
-        <label htmlFor="category">Category</label>
-        <select
-          id="category"
-          name="category"
-          value={expense.category}
-          onChange={handleChange}
-        >
-          <option value="" hidden>
-            Select Category
-          </option>
-          <option value="Grocery">Grocery</option>
-          <option value="Clothes">Clothes</option>
-          <option value="Bills">Bills</option>
-          <option value="Education">Education</option>
-          <option value="Medicine">Medicine</option>
-        </select>
-        <p className="error">{errors.category}</p>
-      </div>
+      <Select
+        id="category"
+        label="Category"
+        name="category"
+        value={expense.category}
+        onchange={handleChange}
+        hiddenOption="Select Category"
+        options={["Grocery", "Clothes", "Bills", "Education", "Medicine"]}
+        error={errors.category}
+      />
       <Input
         label="Amount"
         id="amount"
