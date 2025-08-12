@@ -1,64 +1,68 @@
 import { useState } from "react";
 import Input from "./Input";
 import Select from "./Select";
+import { useLocalStorage } from "../hooks/useLocalStorage";
 
-export default function ExpenseForm({ setExpenses }) {
-  const [expense, setExpense] = useState({
-    title: "",
-    category: "",
-    amount: "",
-  });
-
-  const [errors, setErrors] = useState({});
+export default function ExpenseForm({
+  setExpenses,
+  expense,
+  setExpense,
+  isEditingRow,
+  setIsEditingRow,
+  expenseId,
+}) {
+  const [errors, setErrors] = useLocalStorage('errors',{});
   const validationRule = {
-      title:[
-        {
-          errorType: 'Required',
-          msg: 'Title is required'
-        },
-        {
-          errorType: 'Min Length',
-          msg: 'Minimum lenght is 6'
-        }
-      ],
-      category: [
-        {
-          errorType: 'Required',
-          msg: 'Category is required'
-        },
-      ],
-      amount: [
-        {
-          errorType: 'Required',
-          msg: 'Amount is required'
-        },
-        {
-          errorType: 'Only Number',
-          msg: 'Only Number is valid'
-        },
-      ]
-  }
+    title: [
+      {
+        errorType: "Required",
+        msg: "Title is required",
+      },
+      {
+        errorType: "Min Length",
+        msg: "Title should be atleast two characters long",
+      },
+    ],
+    category: [
+      {
+        errorType: "Required",
+        msg: "Please Select a Category",
+      },
+    ],
+    amount: [
+      {
+        errorType: "Required",
+        msg: "Amount is required",
+      },
+      {
+        errorType: "Only Number",
+        msg: "Please Enter Valid Amount",
+      },
+    ],
+  };
 
   const validate = (formData) => {
     const errorsData = {};
 
-    Object.entries(formData).forEach(([data, dataValue])=>{
-      validationRule[data].some((error)=>{
-        if(error.errorType === 'Required' && !dataValue){
-          errorsData[data] = error.msg
-          return true
-        }
-        else if(error.errorType === 'Min Length' && dataValue && dataValue.length < 6){
-          errorsData[data] = error.msg
-          return true
-        }
-        else if(error.errorType === 'Only Number' && dataValue){
+    Object.entries(formData).forEach(([data, dataValue]) => {
+      validationRule[data].some((error) => {
+        if (error.errorType === "Required" && !dataValue) {
+          errorsData[data] = error.msg;
+          return true;
+        } else if (
+          error.errorType === "Min Length" &&
+          dataValue &&
+          dataValue.length < 2
+        ) {
+          errorsData[data] = error.msg;
+          return true;
+        } else if (error.errorType === "Only Number" && dataValue) {
           let regex = /^\d+$/;
-          if(!regex.test(dataValue)) errorsData[data] = error.msg
-          return true
+          if (!regex.test(dataValue)) errorsData[data] = error.msg;
+          return true;
         }
-      })
-    })
+      });
+    });
 
     setErrors(errorsData);
     return errorsData;
@@ -71,10 +75,24 @@ export default function ExpenseForm({ setExpenses }) {
 
     if (Object.keys(validateResult).length) return;
 
-    setExpenses((prevState) => [
-      ...prevState,
-      { ...expense, id: crypto.randomUUID() },
-    ]);
+    if (isEditingRow) {
+      setExpenses((prevState) =>
+        prevState.map((prevExp) => {
+          if (prevExp.id === expenseId) {
+            return { ...expense, id: expenseId };
+          } else {
+            return prevExp;
+          }
+        })
+      );
+      setIsEditingRow("");
+    } else {
+      setExpenses((prevState) => [
+        ...prevState,
+        { ...expense, id: crypto.randomUUID() },
+      ]);
+    }
+
     setExpense({
       title: "",
       category: "",
@@ -86,7 +104,7 @@ export default function ExpenseForm({ setExpenses }) {
     const { name, value } = e.target;
     setExpense((prevState) => ({
       ...prevState,
-      [name]: value,
+      [name]: value, 
     }));
     setErrors({});
   };
@@ -119,7 +137,7 @@ export default function ExpenseForm({ setExpenses }) {
         onchange={handleChange}
         error={errors.amount}
       />
-      <button className="add-btn">Add</button>
+      <button className="add-btn">{isEditingRow ? "Save" : "Add"}</button>
     </form>
   );
 }
